@@ -1,13 +1,4 @@
-<!doctype html>
-<html lang="de-CH">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="High Availability AG – IT-Support, Netzwerk, Sicherheit und Microsoft 365 für KMU.">
-<style>body{margin:0}img{max-width:100%}</style>
-</head>
-<body>
-<title>High Availability AG</title>
+<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="High Availability AG – IT-Betreuung, Netzwerke und Support für KMU."><style>body{margin:0}img{max-width:100%}</style></head><body><title>High Availability AG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
@@ -985,7 +976,7 @@ const STATUS={"Offen":"s-open","In Bearbeitung":"s-prog","Wartet auf Kunde":"s-w
 const STEP={"Offen":1,"In Bearbeitung":2,"Wartet auf Kunde":3,"Gelöst":4};
 const PRIOS=["Niedrig","Normal","Hoch","Kritisch"];
 const CATEG=["Störung / Fehler","Computer & Software","Netzwerk / WLAN","E-Mail & Microsoft 365","Drucker","Sicherheit","Fernwartung","Offertanfrage","Allgemeine Anfrage"];
-const P={gone:new Set(),delKey:null,deleting:null,mode:"loading",in:false,tab:"overview",db:null,user:null,uid:null,me:null,staff:false,scope:"mine",filter:"Alle",q:"",sel:null,tickets:new Map(),names:{},subs:new Map(),err:""};
+const P={backend:null,gone:new Set(),delKey:null,deleting:null,mode:"loading",in:false,tab:"overview",db:null,user:null,uid:null,me:null,staff:false,scope:"mine",filter:"Alle",q:"",sel:null,tickets:new Map(),names:{},subs:new Map(),err:""};
 const now=Date.now(),H=3600e3;
 const DEMO=[
  {id:"3",no:3,owner:"demo",subject:"WLAN im Sitzungszimmer bricht ab",category:"Netzwerk / WLAN",device:"Access Point",location:"Sitzungszimmer",priority:"Hoch",status:"In Bearbeitung",contact:"Eva Derungs",company:"Sota GmbH",createdAt:now-26*H,updatedAt:now-2*H,messages:[
@@ -1014,8 +1005,9 @@ function custContact(){return (P.profile?.contact||"").trim()||P.me?.name||""}
 
 function renderPortal(){
  if(!P.in){portal.innerHTML=`<div class="login"><div class="box"><img src="${LOGO}" alt=""><h3>Willkommen im Kundenbereich</h3>
-  ${P.mode==="loading"?`<p>Verbindung wird hergestellt…</p>`:P.mode==="live"?(P.profile&&P.profile.done?`<p>Angemeldet als <b>${esc(custName())}</b>${custContact()?` · ${esc(custContact())}`:""}. Ihre Tickets sind nur für Sie und unser Support-Team sichtbar.</p><button class="btn btn-primary" id="enter">Anmelden</button><button class="readmore" id="editProf" style="font-size:14px">Firmenangaben ändern</button>`:`<p>Bitte geben Sie einmalig Ihre Firma an. Sie erscheint als Name bei all Ihren Tickets.</p>${profileForm()}`):`<p>Die Anmeldung ist in dieser Ansicht nicht verfügbar. Sie können den Kundenbereich im Demo-Modus mit Beispieldaten ausprobieren. Änderungen werden dann nicht gespeichert.</p><button class="btn btn-primary" id="enter">Demo öffnen</button>`}
+  ${P.mode==="loading"?`<p>Verbindung wird hergestellt…</p>`:P.mode==="login"?sbLoginHtml():P.mode==="live"?(P.profile&&P.profile.done?`<p>Angemeldet als <b>${esc(custName())}</b>${custContact()?` · ${esc(custContact())}`:""}. Ihre Tickets sind nur für Sie und unser Support-Team sichtbar.</p><button class="btn btn-primary" id="enter">Anmelden</button><button class="readmore" id="editProf" style="font-size:14px">Firmenangaben ändern</button>`:`<p>Bitte geben Sie einmalig Ihre Firma an. Sie erscheint als Name bei all Ihren Tickets.</p>${profileForm()}`):`<p>Die Anmeldung ist in dieser Ansicht nicht verfügbar. Sie können den Kundenbereich im Demo-Modus mit Beispieldaten ausprobieren. Änderungen werden dann nicht gespeichert.</p><button class="btn btn-primary" id="enter">Demo öffnen</button>`}
   </div></div>`;const b=$("#enter");b&&b.addEventListener("click",()=>{P.in=true;P.anim=true;renderPortal()});
+  bindSbLogin();
   const ep=$("#editProf");ep&&ep.addEventListener("click",()=>{P.profile={...P.profile,done:false};renderPortal()});
   bindProfileForm(()=>{P.in=true;P.anim=true;renderPortal()});return}
  const all=list();const open=all.filter(t=>t.status!=="Gelöst").length;
@@ -1027,7 +1019,7 @@ function renderPortal(){
  portal.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{if(P.tab!==b.dataset.tab){P.tab=b.dataset.tab;P.anim=true}renderPortal()}));
  portal.querySelectorAll("[data-role]").forEach(b=>b.addEventListener("click",()=>{P.staff=b.dataset.role==="support";P.scope="all";renderPortal()}));
  portal.querySelectorAll("[data-scope]").forEach(b=>b.addEventListener("click",()=>{P.scope=b.dataset.scope;P.sel=null;renderPortal()}));
- $("#logout").addEventListener("click",()=>{P.in=false;renderPortal()});
+ $("#logout").addEventListener("click",async()=>{P.in=false;if(SB&&P.backend!=="sb"){P.backend="sb";P.mode="login";P.tickets=new Map();P.profile=null;P.staff=false;renderPortal();return}if(P.backend==="sb"){try{await SB.auth.signOut()}catch(e){}P.mode="login";P.tickets=new Map();P.profile=null;P.staff=false}renderPortal()});
  const pb=$("#profBtn");pb&&pb.addEventListener("click",()=>drawer(`<header><div><p class="eyebrow">Kundenkonto</p><h3 style="margin-top:8px">Firmenangaben</h3></div><button class="x" data-close aria-label="Schliessen">×</button></header><p class="hint">Die Firma erscheint als Name bei allen neuen Tickets. Ohne Firma erscheinen Ihre Tickets als «Unbekannt».</p>${profileForm(true)}`,d=>bindProfileForm(()=>{closeDrawer();renderPortal();toast("Firmenangaben gespeichert")},d)));
  const m=$("#pmain");if(P.anim&&!RM){m.classList.add("anim");P.anim=false;setTimeout(()=>m.classList.remove("anim"),700)}
  ({overview:vOverview,tickets:m=>vTickets(m,false),closed:m=>vTickets(m,true),docs:vDocs,bills:vBills,remote:vRemote})[P.tab](m);
@@ -1118,7 +1110,8 @@ function profileForm(edit){const pr=P.profile||{};return `<form id="profForm" no
  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:${edit?"flex-end":"center"}"><button type="button" class="btn btn-ghost" id="pf-none">Ohne Firma fortfahren</button><button class="btn btn-primary" type="submit">${edit?"Speichern":"Weiter"}</button></div></form>`}
 function bindProfileForm(done,root=document){const f=root.querySelector("#profForm");if(!f)return;
  const save=async company=>{const contact=root.querySelector("#pf-contact").value.trim();P.profile={company,contact,done:true};
-  if(P.mode==="live"){try{const ref=P.db.doc(`tickets/${P.uid}`);const cur=await ref.get();await ref.set({...(cur.exists?cur.data():{}),...profBody(),updatedAt:(cur.exists&&cur.data().updatedAt)||Date.now()})}catch(e){const er=root.querySelector("#pf-err");er.textContent="Speichern fehlgeschlagen. Bitte erneut versuchen.";er.hidden=false;return}}
+  if(P.backend==="sb"){const ok=await sbSaveProfile(company,contact);if(!ok){const er=root.querySelector("#pf-err");er.textContent="Speichern fehlgeschlagen. Bitte erneut versuchen.";er.hidden=false;return}}
+  else if(P.mode==="live"){try{const ref=P.db.doc(`tickets/${P.uid}`);const cur=await ref.get();await ref.set({...(cur.exists?cur.data():{}),...profBody(),updatedAt:(cur.exists&&cur.data().updatedAt)||Date.now()})}catch(e){const er=root.querySelector("#pf-err");er.textContent="Speichern fehlgeschlagen. Bitte erneut versuchen.";er.hidden=false;return}}
   done()};
  f.addEventListener("submit",e=>{e.preventDefault();const c=root.querySelector("#pf-company").value.trim();if(!c){const er=root.querySelector("#pf-err");er.textContent="Bitte Firma eingeben oder «Ohne Firma fortfahren» wählen.";er.hidden=false;return}save(c)});
  root.querySelector("#pf-none").addEventListener("click",()=>save(""))}
@@ -1132,6 +1125,7 @@ async function nextNo(){
   await sleep(250+Math.random()*450)}
  throw new Error("Ticketnummer konnte nicht vergeben werden")}
 async function createTicket(f){
+ if(P.backend==="sb")return sbCreateTicket(f);
  let no;try{no=await nextNo()}catch(e){console.warn(e);return null}
  const at=Date.now();const t={id:String(no),no,owner:P.mode==="live"?P.uid:"demo",subject:f.subject,category:f.category,priority:f.priority,status:"Offen",contact:f.contact,company:f.company,device:f.device||"",location:f.location||"",createdAt:at,updatedAt:at,messages:[{by:"customer",text:f.text,at,uid:P.uid},{by:"sys",text:"Ticket eröffnet. Wir melden uns so schnell wie möglich.",at}]};
  if(P.mode!=="live"){P.tickets.set(key(t),t);return t}
@@ -1144,9 +1138,10 @@ function moveTab(from,to){
 async function deleteTicket(t){
  const k=key(t);P.deleting=k;const row=portal.querySelector(`.tk[data-k="${CSS.escape(k)}"]`);const det=portal.querySelector(".detail");
  if(!RM){row&&row.classList.add("removing");det&&det.classList.add("leaving");await new Promise(r=>setTimeout(r,300))}
- if(P.mode==="live"){try{await P.db.doc(`tickets/${t.owner}/t/${t.id}`).delete()}catch(e){console.warn(e);P.deleting=null;row&&row.classList.remove("removing");det&&det.classList.remove("leaving");renderPortal();toast("Löschen fehlgeschlagen: "+(e&&e.code?e.code:"unbekannter Fehler")+". Bitte erneut versuchen.");return}}
+ if(P.mode==="live"){try{if(P.backend==="sb"){const {error}=await SB.from("tickets").delete().eq("id",t.no);if(error)throw error}else await P.db.doc(`tickets/${t.owner}/t/${t.id}`).delete()}catch(e){console.warn(e);P.deleting=null;row&&row.classList.remove("removing");det&&det.classList.remove("leaving");renderPortal();toast("Löschen fehlgeschlagen: "+(e&&e.code?e.code:"unbekannter Fehler")+". Bitte erneut versuchen.");return}}
  P.deleting=null;P.delKey=null;P.gone.add(k);P.tickets.delete(k);P.sel=null;P._lastSel=null;renderPortal();toast(`${tno(t)} gelöscht`)}
 async function saveTicket(t,patch){
+ if(P.backend==="sb")return sbSaveTicket(t,patch);
  const k=key(t);if(P.mode!=="live"){P.tickets.set(k,{...t,...patch});renderPortal();return}
  try{await P.db.doc(`tickets/${t.owner}/t/${t.id}`).update(patch);if(t.owner===P.uid)P.db.doc(`tickets/${P.uid}`).set({...profBody(),updatedAt:patch.updatedAt}).catch(()=>{});P.tickets.set(k,{...t,...patch});renderPortal()}catch(e){console.warn(e);toast("Speichern fehlgeschlagen. Bitte erneut versuchen.")}
 }
@@ -1168,6 +1163,65 @@ function formTicket(formId,errId,build){$(formId).addEventListener("submit",asyn
 formTicket("#offerForm","#of-err",()=>{const n=$("#of-name").value.trim(),x=$("#of-text").value.trim();if(!n||!x)return null;const ap=$("#of-ap").value.trim();return{subject:"Offertanfrage: "+$("#of-type").value,category:"Offertanfrage",priority:"Normal",contact:n,company:$("#of-firma").value.trim(),text:x+(ap?`\n\nAnzahl Arbeitsplätze: ${ap}`:"")}});
 formTicket("#contactForm","#ct-err",()=>{const n=$("#ct-name").value.trim(),x=$("#ct-msg").value.trim();if(!n||!x)return null;return{subject:"Kontaktanfrage von "+n,category:"Allgemeine Anfrage",priority:"Normal",contact:n,company:$("#ct-firma").value.trim(),text:x}});
 
+
+/* ---------- Supabase-Anbindung (öffentliche Website) ---------- */
+const SB_URL="https://hhtxvnmaidseeflcfqai.supabase.co";
+const SB_KEY="sb_publishable_EiewPLCa__Lhlo4pZ093GQ_BB2umdAz";
+let SB=null,sbReloadT=null;
+function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el)})}
+function sbLoginHtml(){return `<p>Melden Sie sich mit Ihrer E-Mail-Adresse an. Sie erhalten einen Login-Link, ein Passwort ist nicht nötig.</p>
+ <form id="sbLogin" novalidate style="display:grid;gap:10px;width:100%;text-align:left"><div class="field"><label for="sb-mail">E-Mail-Adresse</label><input id="sb-mail" type="email" autocomplete="email" required placeholder="name@firma.ch"></div>
+ <p class="err" id="sb-err" hidden></p><button class="btn btn-primary" type="submit" id="sb-send">Login-Link senden</button></form>
+ <div id="sb-sent" class="banner ok" hidden style="text-align:left"></div>
+ <button class="readmore" id="sbDemo" style="font-size:14px">Ohne Anmeldung: Demo ansehen</button>`}
+function bindSbLogin(){const f=$("#sbLogin");if(!f)return;
+ f.addEventListener("submit",async e=>{e.preventDefault();const mail=$("#sb-mail").value.trim();const er=$("#sb-err");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){er.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";er.hidden=false;return}
+  const btn=$("#sb-send");btn.disabled=true;btn.textContent="Wird gesendet…";
+  const {error}=await SB.auth.signInWithOtp({email:mail,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(error){btn.disabled=false;btn.textContent="Login-Link senden";er.textContent="Senden fehlgeschlagen: "+error.message;er.hidden=false;return}
+  f.hidden=true;const s=$("#sb-sent");s.innerHTML=`Wir haben einen Login-Link an <b>${esc(mail)}</b> gesendet. Öffnen Sie die E-Mail und klicken Sie auf den Link. Prüfen Sie auch den Spam-Ordner.`;s.hidden=false});
+ const d=$("#sbDemo");d&&d.addEventListener("click",()=>{P.backend=null;useDemo();P.in=true;P.anim=true;renderPortal()})}
+function sbRowToTicket(r){return{id:String(r.id),no:r.id,owner:r.owner,subject:r.subject,category:r.category,priority:r.priority,status:r.status,device:r.device||"",location:r.location||"",company:r.company||"",contact:r.contact||"",createdAt:Date.parse(r.created_at),updatedAt:Date.parse(r.updated_at),
+ messages:(r.messages||[]).slice().sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id).map(m=>({by:m.kind,text:m.body,at:Date.parse(m.created_at),uid:m.author}))}}
+async function sbLoadTickets(){const {data,error}=await SB.from("tickets").select("*, messages(*)").order("updated_at",{ascending:false});
+ if(error){P.err="Tickets konnten nicht geladen werden: "+error.message;renderPortalSoft();return}
+ P.err="";P.tickets=new Map(data.map(r=>{const t=sbRowToTicket(r);return[key(t),t]}).filter(([k])=>!P.gone.has(k)));if(P.in)renderPortalSoft()}
+function sbScheduleReload(){clearTimeout(sbReloadT);sbReloadT=setTimeout(sbLoadTickets,350)}
+async function sbLoadProfile(){const {data}=await SB.from("profiles").select("*").eq("id",P.uid).maybeSingle();
+ if(data){P.profile={company:data.company||"",contact:data.contact||"",done:true};P.staff=!!data.is_staff}else{P.profile={company:"",contact:"",done:false};P.staff=false}}
+async function sbSaveProfile(company,contact){const {data}=await SB.from("profiles").select("id").eq("id",P.uid).maybeSingle();
+ const q=data?SB.from("profiles").update({company,contact}).eq("id",P.uid):SB.from("profiles").insert({id:P.uid,company,contact});
+ const {error}=await q;if(error){console.warn(error);return false}return true}
+async function sbCreateTicket(f){
+ const {data,error}=await SB.from("tickets").insert({subject:f.subject,category:f.category,priority:f.priority,device:f.device||"",location:f.location||"",company:f.company||"",contact:f.contact||""}).select().single();
+ if(error){console.warn(error);return null}
+ const {error:e2}=await SB.from("messages").insert([{ticket_id:data.id,kind:"customer",body:f.text},{ticket_id:data.id,kind:"sys",body:"Ticket eröffnet. Wir melden uns so schnell wie möglich."}]);
+ if(e2)console.warn(e2);
+ const t=sbRowToTicket({...data,messages:[]});const now=Date.now();t.messages=[{by:"customer",text:f.text,at:now},{by:"sys",text:"Ticket eröffnet. Wir melden uns so schnell wie möglich.",at:now}];
+ P.tickets.set(key(t),t);sbScheduleReload();return t}
+async function sbSaveTicket(t,patch){
+ const k=key(t);const old=(t.messages||[]).length;const add=(patch.messages||[]).slice(old);
+ try{
+  if(add.length){const {error}=await SB.from("messages").insert(add.map(m=>({ticket_id:t.no,kind:m.by,body:m.text})));if(error)throw error}
+  const upd={updated_at:new Date().toISOString()};if(patch.status&&patch.status!==t.status)upd.status=patch.status;
+  const {error}=await SB.from("tickets").update(upd).eq("id",t.no);if(error)throw error;
+  P.tickets.set(k,{...t,...patch});renderPortal();sbScheduleReload()
+ }catch(e){console.warn(e);toast("Speichern fehlgeschlagen: "+(e.message||"Fehler")+".")}}
+async function sbInit(){
+ P.backend="sb";
+ try{await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")}catch(e){P.backend=null;useDemo();return}
+ SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,detectSessionInUrl:true}});
+ const enter=async(session,fromLink)=>{P.uid=session.user.id;P.me={name:""};P.mode="live";await sbLoadProfile();P.scope=P.staff?"all":"mine";await sbLoadTickets();
+  SB.channel("ha-tickets").on("postgres_changes",{event:"*",schema:"public",table:"tickets"},sbScheduleReload).on("postgres_changes",{event:"*",schema:"public",table:"messages"},sbScheduleReload).subscribe();
+  if(fromLink){if(typeof setView==="function")setView("tickets");try{history.replaceState(null,"",location.pathname+"#ticketsystem")}catch(e){}}
+  renderPortal()};
+ const {data:{session}}=await SB.auth.getSession();
+ const cameFromLink=/access_token|code=|type=magiclink/.test(location.href);
+ if(session){await enter(session,cameFromLink)}else{P.mode="login";renderPortal()}
+ SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"){enter(sess,true)}if(ev==="SIGNED_OUT"){P.mode="login";P.in=false;renderPortal()}});
+}
+
 /* ---------- Live-Anbindung ---------- */
 function useDemo(){P.mode="demo";P.profile={company:"Sota GmbH",contact:"Eva Derungs",done:true};P.tickets=new Map(DEMO.map(t=>[key(t),t]));renderPortal()}
 function docToTicket(owner,d){const v=d.data();if(!v)return null;return{...v,owner,id:d.id,messages:Array.isArray(v.messages)?v.messages:[]}}
@@ -1175,7 +1229,7 @@ function watchOwner(owner){if(P.subs.has(owner))return;const un=P.db.collection(
 let softT;function renderPortalSoft(){clearTimeout(softT);softT=setTimeout(()=>{const a=document.activeElement;if(a&&portal.contains(a)&&(a.id==="rp"||a.id==="tkq")&&a.value)return;if(P.deleting)return;renderPortal()},60)}
 async function resolveNames(){if(!P.staff||!P.user)return;const ids=[...new Set([...P.tickets.values()].map(t=>t.owner))].filter(i=>!(i in P.names));if(!ids.length)return;try{const ps=await P.user.profiles(ids);ids.forEach(i=>P.names[i]=ps[i]?.name||"")}catch(e){}}
 (async()=>{renderPortal();
- if(!window.claude?.use){useDemo();return}
+ if(!window.claude?.use){if(SB_URL&&SB_KEY){sbInit();return}useDemo();return}
  const timer=setTimeout(()=>{if(P.mode==="loading")useDemo()},11000);
  try{const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);clearTimeout(timer);
   if(P.mode!=="loading")return;
@@ -1191,6 +1245,4 @@ async function resolveNames(){if(!P.staff||!P.user)return;const ids=[...new Set(
  }catch(e){clearTimeout(timer);if(P.mode==="loading")useDemo()}
 })();
 </script>
-
-</body>
-</html>
+</body></html>
