@@ -1067,10 +1067,23 @@ $("#nav").addEventListener("click",e=>{if(e.target.tagName==="A"){$("#nav").clas
 setInterval(()=>{$("#clock").textContent=new Date().toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"})},1000);
 
 /* ---------- Signalbögen im Hero ---------- */
-(function(){const c=$("#waves");const x=c.getContext("2d");const red=matchMedia("(prefers-reduced-motion: reduce)").matches;let w,h,t=0;
+(function(){const c=$("#waves");const x=c.getContext("2d");const red=matchMedia("(prefers-reduced-motion: reduce)").matches;let w,h,vis=true,raf=0;
+ const N=10,GAP=78,R0=90,SPEED=14; /* Pixel pro Sekunde, sehr ruhig */
+ const sm=v=>v<=0?0:v>=1?1:v*v*(3-2*v);
  function size(){const r=c.getBoundingClientRect();const d=devicePixelRatio||1;w=r.width;h=r.height;c.width=w*d;c.height=h*d;x.setTransform(d,0,0,d,0,0)}
- function draw(){x.clearRect(0,0,w,h);const cx=w*.86,cy=h*1.05;for(let i=0;i<9;i++){const rad=110+i*78+(red?0:(t*.35)%78);const a=Math.max(0,.30-i*.03);x.beginPath();x.arc(cx,cy,rad,Math.PI*1.08,Math.PI*1.92);x.strokeStyle=`rgba(123,201,131,${a})`;x.lineWidth=i%2?2:6;x.lineCap="round";x.setLineDash(i%2?[14,18]:[]);x.stroke()}x.setLineDash([]);if(!red){t++;requestAnimationFrame(draw)}}
- size();addEventListener("resize",size);draw()})();
+ function draw(now){const t=(now||0)/1000;x.clearRect(0,0,w,h);const cx=w*.86,cy=h*1.05;const span=N*GAP;
+  for(let i=0;i<N;i++){
+   /* jeder Bogen waechst endlos nach aussen und taucht innen unsichtbar wieder auf: kein Springen */
+   const r=R0+((i*GAP+(red?0:t*SPEED))%span);const k=(r-R0)/span;
+   const a=.30*sm(k/.12)*sm((1-k)/.35)*(1-k*.45);if(a<.004)continue;
+   x.beginPath();x.arc(cx,cy,r,Math.PI*1.08,Math.PI*1.92);x.strokeStyle=`rgba(123,201,131,${a.toFixed(3)})`;
+   const dashed=i%2===1;x.lineWidth=dashed?2:5;x.lineCap="round";
+   if(dashed){x.setLineDash([14,18]);x.lineDashOffset=-(red?0:t*10)}else x.setLineDash([]);x.stroke()}
+  x.setLineDash([]);if(!red&&vis)raf=requestAnimationFrame(draw)}
+ size();addEventListener("resize",()=>{size();if(red)draw(0)});
+ if("IntersectionObserver" in window)new IntersectionObserver(e=>{const v=e[0].isIntersecting;if(v&&!vis&&!red){vis=true;raf=requestAnimationFrame(draw)}else if(!v){vis=false;cancelAnimationFrame(raf)}}).observe(c);
+ document.addEventListener("visibilitychange",()=>{if(document.hidden){cancelAnimationFrame(raf)}else if(vis&&!red){cancelAnimationFrame(raf);raf=requestAnimationFrame(draw)}});
+ red?draw(0):raf=requestAnimationFrame(draw)})();
 
 
 /* Scroll-Animation: von oben nach unten, wie nach oben wischen. Wiederholt sich bei jedem Runterscrollen. */
