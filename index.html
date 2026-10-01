@@ -470,6 +470,16 @@ button.stat:hover{border-color:var(--brand);transform:translateY(-2px)}
 .sendas b{display:block;font-size:15px}
 .login form .field{text-align:left}
 /* Konto-Fenster oben rechts */
+.auth-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:999px;padding:3px;margin-bottom:16px}
+.auth-tabs button{position:relative;z-index:1;border:0;background:none;font:600 13.5px var(--f-body);color:var(--muted);padding:8px 0;border-radius:999px;cursor:pointer;transition:color .25s}
+.auth-tabs button[aria-selected="true"]{color:var(--ink)}
+.auth-thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12);transition:transform .35s var(--ease)}
+.acct-pop .pw{position:relative}.acct-pop .pw input{width:100%;padding-right:44px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);width:34px;height:34px;border-radius:8px;display:grid;place-items:center;cursor:pointer}
+.pw-eye:hover,.pw-eye[aria-pressed="true"]{color:var(--brand)}.pw-eye svg{width:18px;height:18px}
+.okmsg{font-size:13px;color:var(--st-done);background:var(--st-done-bg);border-radius:10px;padding:8px 10px}
+.acct-pop form .alt{margin-top:0}
+
 .acct{position:relative;flex-shrink:0}
 .acct-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--hero-line);background:transparent;color:var(--hero-ink);font:600 13px var(--f-body);padding:4px 14px 4px 4px;border-radius:999px;cursor:pointer;transition:background .25s var(--ease),border-color .25s var(--ease),transform .2s var(--ease)}
 .acct-btn:hover{background:var(--hero-2);border-color:var(--signal)}
@@ -1076,7 +1086,7 @@ function renderPortal(){
  if(!P.in&&P.mode==="live"&&P.profile&&P.profile.done)P.in=true;
  queueMicrotask(renderAcct);
  if(!P.in){portal.innerHTML=`<div class="login"><div class="box"><img src="${LOGO}" alt=""><h3>Willkommen im Kundenbereich</h3>
-  ${P.mode==="loading"?`<p>Verbindung wird hergestellt…</p>`:P.mode==="login"?`<p>Melden Sie sich oben rechts unter «Anmelden» an, um Ihre Tickets zu sehen und neue Anfragen zu erfassen.</p><button class="btn btn-primary" id="openAcct">Anmelden</button><button class="readmore" data-demo style="font-size:14px">Ohne Anmeldung: Demo ansehen</button>`:P.mode==="live"?(P.profile&&P.profile.done?`<p>Angemeldet als <b>${esc(custName())}</b>${custContact()?` · ${esc(custContact())}`:""}. Ihre Tickets sind nur für Sie und unser Support-Team sichtbar.</p><button class="btn btn-primary" id="enter">Anmelden</button><button class="readmore" id="editProf" style="font-size:14px">Firmenangaben ändern</button>`:`<p>Bitte geben Sie einmalig Ihre Firma an. Sie erscheint als Name bei all Ihren Tickets.</p>${profileForm()}`):`<p>Die Anmeldung ist in dieser Ansicht nicht verfügbar. Sie können den Kundenbereich im Demo-Modus mit Beispieldaten ausprobieren. Änderungen werden dann nicht gespeichert.</p><button class="btn btn-primary" id="enter">Demo öffnen</button>`}
+  ${P.mode==="loading"?`<p>Verbindung wird hergestellt…</p>`:P.mode==="login"?`<p>Melden Sie sich oben rechts unter «Anmelden» an oder erstellen Sie ein Konto, um Ihre Tickets zu sehen und neue Anfragen zu erfassen.</p><button class="btn btn-primary" id="openAcct">Anmelden</button><button class="readmore" data-demo style="font-size:14px">Ohne Anmeldung: Demo ansehen</button>`:P.mode==="live"?(P.profile&&P.profile.done?`<p>Angemeldet als <b>${esc(custName())}</b>${custContact()?` · ${esc(custContact())}`:""}. Ihre Tickets sind nur für Sie und unser Support-Team sichtbar.</p><button class="btn btn-primary" id="enter">Anmelden</button><button class="readmore" id="editProf" style="font-size:14px">Firmenangaben ändern</button>`:`<p>Bitte geben Sie einmalig Ihre Firma an. Sie erscheint als Name bei all Ihren Tickets.</p>${profileForm()}`):`<p>Die Anmeldung ist in dieser Ansicht nicht verfügbar. Sie können den Kundenbereich im Demo-Modus mit Beispieldaten ausprobieren. Änderungen werden dann nicht gespeichert.</p><button class="btn btn-primary" id="enter">Demo öffnen</button>`}
   </div></div>`;const b=$("#enter");b&&b.addEventListener("click",()=>{P.in=true;P.anim=true;renderPortal()});
   const oa=$("#openAcct");oa&&oa.addEventListener("click",e=>{e.stopPropagation();openAcct(true)});
   portal.querySelectorAll("[data-demo]").forEach(b=>b.addEventListener("click",startDemo));
@@ -1241,29 +1251,46 @@ const SB_URL="https://hhtxvnmaidseeflcfqai.supabase.co";
 const SB_KEY="sb_publishable_EiewPLCa__Lhlo4pZ093GQ_BB2umdAz";
 let SB=null,sbReloadT=null;
 function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el)})}
-function sbLoginHtml(){return `<h4>Anmelden</h4><p class="sub" id="sb-intro">Kundenbereich von High Availability AG. Sie erhalten einen Login-Link per E-Mail, ein Passwort ist nicht nötig.</p>
- <form id="sbLogin" novalidate><div class="field"><label for="sb-mail">E-Mail-Adresse</label><input id="sb-mail" type="email" autocomplete="email" required placeholder="name@firma.ch"></div>
- <p class="err" id="sb-err" hidden></p><button class="btn btn-primary" type="submit" id="sb-send">Login-Link senden</button></form>
- <div id="sb-sent" class="sent" hidden role="status" aria-live="polite"></div>
+let sbTab="login";
+function sbLoginHtml(){const reg=sbTab==="reg";return `<div class="auth-tabs" role="tablist"><button type="button" role="tab" data-at="login" aria-selected="${!reg}">Anmelden</button><button type="button" role="tab" data-at="reg" aria-selected="${reg}">Registrieren</button><span class="auth-thumb" style="transform:translateX(${reg?"100%":"0"})"></span></div>
+ <form id="sbLogin" novalidate>
+ ${reg?`<div class="field"><label for="sb-company">Firma</label><input id="sb-company" autocomplete="organization" placeholder="z.B. Sota GmbH"></div><div class="field"><label for="sb-contact">Ansprechperson</label><input id="sb-contact" autocomplete="name" placeholder="Vor- und Nachname"></div>`:""}
+ <div class="field"><label for="sb-mail">E-Mail-Adresse</label><input id="sb-mail" type="email" autocomplete="email" required placeholder="name@firma.ch"></div>
+ <div class="field"><label for="sb-pw">Passwort</label><div class="pw"><input id="sb-pw" type="password" autocomplete="${reg?"new-password":"current-password"}" required minlength="6" placeholder="${reg?"Mindestens 6 Zeichen":"Ihr Passwort"}"><button type="button" class="pw-eye" aria-label="Passwort anzeigen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+ <p class="err" id="sb-err" hidden></p><p class="okmsg" id="sb-ok" hidden></p>
+ <button class="btn btn-primary" type="submit" id="sb-send">${reg?"Konto erstellen":"Anmelden"}</button>
+ ${reg?"":`<button type="button" class="alt" id="sb-forgot" style="margin-top:0">Passwort vergessen?</button>`}</form>
  <button class="alt" data-demo type="button">Ohne Anmeldung: Demo ansehen</button>`}
-function sbErr(e){const m=(e&&e.message)||"";if(/rate limit/i.test(m))return "Es wurden gerade zu viele Login-Mails verschickt. Bitte versuchen Sie es in etwa einer Stunde erneut oder kontaktieren Sie uns direkt.";if(/invalid/i.test(m)&&/email/i.test(m))return "Diese E-Mail-Adresse ist ungültig.";return "Senden fehlgeschlagen. Bitte später erneut versuchen."}
-function sbShowSent(mail){const f=$("#sbLogin"),s=$("#sb-sent"),i=$("#sb-intro");f.hidden=true;i&&(i.hidden=true);
- s.innerHTML=`<div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg><span class="chk">✓</span></div>
- <h4>Prüfen Sie Ihr Postfach</h4><p class="lead">Wir haben Ihnen einen Login-Link gesendet an</p><span class="mail">${esc(mail)}</span>
- <ol><li><b>1</b>E-Mail von High Availability AG öffnen</li><li><b>2</b>Auf «Log In» bzw. den Link klicken</li><li><b>3</b>Sie landen direkt im Kundenbereich</li></ol>
- <p class="lead" style="font-size:13px">Nichts erhalten? Bitte auch den Spam-Ordner prüfen.</p>
- <div class="acts"><button type="button" id="sb-again">Erneut senden</button><button type="button" id="sb-other">Andere E-Mail verwenden</button></div>`;
- s.hidden=false;const ag=$("#sb-again");let t=60;const tick=()=>{if(!document.body.contains(ag))return clearInterval(iv);if(t>0){ag.disabled=true;ag.textContent=`Erneut senden (${t--}s)`}else{ag.disabled=false;ag.textContent="Erneut senden";clearInterval(iv)}};const iv=setInterval(tick,1000);tick();
- ag.addEventListener("click",async()=>{ag.disabled=true;ag.textContent="Wird gesendet…";const {error}=await SB.auth.signInWithOtp({email:mail,options:{emailRedirectTo:location.origin+location.pathname}});if(error){ag.disabled=false;ag.textContent="Erneut senden";toast(sbErr(error));return}sbShowSent(mail)});
- $("#sb-other").addEventListener("click",()=>{clearInterval(iv);s.hidden=true;s.innerHTML="";f.hidden=false;i&&(i.hidden=false);const m=$("#sb-mail");m.value="";m.focus()})}
-function bindSbLogin(){const f=$("#sbLogin");if(!f)return;
- f.addEventListener("submit",async e=>{e.preventDefault();const mail=$("#sb-mail").value.trim();const er=$("#sb-err");
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){er.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";er.hidden=false;return}
-  const btn=$("#sb-send");btn.disabled=true;btn.textContent="Wird gesendet…";
-  const {error}=await SB.auth.signInWithOtp({email:mail,options:{emailRedirectTo:location.origin+location.pathname}});
-  if(error){btn.disabled=false;btn.textContent="Login-Link senden";er.textContent=sbErr(error);er.hidden=false;return}
-  btn.disabled=false;btn.textContent="Login-Link senden";sbShowSent(mail)});
-}
+function sbErr(e){const m=(e&&e.message)||"";
+ if(/invalid login credentials/i.test(m))return "E-Mail oder Passwort ist falsch.";
+ if(/already registered|already exists/i.test(m))return "Für diese E-Mail gibt es bereits ein Konto. Bitte melden Sie sich an.";
+ if(/at least 6|password should/i.test(m))return "Das Passwort muss mindestens 6 Zeichen lang sein.";
+ if(/not confirmed/i.test(m))return "Diese E-Mail ist noch nicht bestätigt.";
+ if(/rate limit/i.test(m))return "Zu viele Versuche in kurzer Zeit. Bitte etwas später erneut versuchen.";
+ if(/invalid/i.test(m)&&/email/i.test(m))return "Diese E-Mail-Adresse ist ungültig.";
+ return "Das hat nicht geklappt. Bitte später erneut versuchen."}
+function bindSbLogin(){const pop=$("#acctPop");const f=$("#sbLogin");if(!f)return;
+ pop.querySelectorAll("[data-at]").forEach(b=>b.addEventListener("click",()=>{if(sbTab===b.dataset.at)return;const mail=$("#sb-mail").value;sbTab=b.dataset.at;pop.innerHTML=sbLoginHtml();bindSbLogin();pop.querySelectorAll("[data-demo]").forEach(x=>x.addEventListener("click",startDemo));const th=pop.querySelector(".auth-thumb");if(th&&!RM){th.style.transition="none";th.style.transform=`translateX(${sbTab==="reg"?"0":"100%"})`;void th.offsetWidth;th.style.transition="";th.style.transform=`translateX(${sbTab==="reg"?"100%":"0"})`}$("#sb-mail").value=mail;(sbTab==="reg"?$("#sb-company"):mail?$("#sb-pw"):$("#sb-mail")).focus()}));
+ const eye=pop.querySelector(".pw-eye");eye.addEventListener("click",()=>{const i=$("#sb-pw");const show=i.type==="password";i.type=show?"text":"password";eye.setAttribute("aria-pressed",show);eye.setAttribute("aria-label",show?"Passwort verbergen":"Passwort anzeigen")});
+ const er=$("#sb-err"),ok=$("#sb-ok");const fail=t=>{er.textContent=t;er.hidden=false;ok.hidden=true};
+ const fg=$("#sb-forgot");fg&&fg.addEventListener("click",async()=>{const mail=$("#sb-mail").value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){fail("Bitte zuerst Ihre E-Mail-Adresse eingeben.");$("#sb-mail").focus();return}
+  fg.disabled=true;const {error}=await SB.auth.resetPasswordForEmail(mail,{redirectTo:location.origin+location.pathname});fg.disabled=false;
+  if(error){fail(sbErr(error));return}er.hidden=true;ok.textContent="Wir haben Ihnen einen Link zum Zurücksetzen des Passworts gesendet.";ok.hidden=false});
+ f.addEventListener("submit",async e=>{e.preventDefault();const reg=sbTab==="reg";const mail=$("#sb-mail").value.trim(),pw=$("#sb-pw").value;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail))return fail("Bitte eine gültige E-Mail-Adresse eingeben.");
+  if(pw.length<6)return fail(reg?"Das Passwort muss mindestens 6 Zeichen lang sein.":"Bitte Ihr Passwort eingeben.");
+  const btn=$("#sb-send");const lbl=btn.textContent;btn.disabled=true;btn.textContent=reg?"Konto wird erstellt…":"Anmelden…";er.hidden=true;
+  let res;if(reg){P.pendingProfile={company:$("#sb-company").value.trim(),contact:$("#sb-contact").value.trim()};res=await SB.auth.signUp({email:mail,password:pw})}
+  else res=await SB.auth.signInWithPassword({email:mail,password:pw});
+  btn.disabled=false;btn.textContent=lbl;
+  if(res.error){P.pendingProfile=null;return fail(sbErr(res.error))}
+  if(reg&&!res.data?.session){ok.textContent="Konto erstellt. Bitte bestätigen Sie noch Ihre E-Mail-Adresse.";ok.hidden=false;return}
+  sbTab="login";closeAcct()})}
+function sbNewPassword(){drawer(`<header><div><p class="eyebrow">Kundenkonto</p><h3 style="margin-top:8px">Neues Passwort</h3></div><button class="x" data-close aria-label="Schliessen">×</button></header>
+ <form id="npForm" novalidate style="display:grid;gap:12px"><div class="field"><label for="np-pw">Neues Passwort</label><input id="np-pw" type="password" autocomplete="new-password" minlength="6" placeholder="Mindestens 6 Zeichen"></div><p class="err" id="np-err" hidden></p><button class="btn btn-primary" type="submit">Passwort speichern</button></form>`,d=>{
+ const f=d.querySelector("#npForm");f.addEventListener("submit",async e=>{e.preventDefault();const pw=d.querySelector("#np-pw").value;const er=d.querySelector("#np-err");
+  if(pw.length<6){er.textContent="Das Passwort muss mindestens 6 Zeichen lang sein.";er.hidden=false;return}
+  const {error}=await SB.auth.updateUser({password:pw});if(error){er.textContent=sbErr(error);er.hidden=false;return}closeDrawer();toast("Passwort gespeichert")})})}
 function sbRowToTicket(r){return{id:String(r.id),no:r.id,owner:r.owner,subject:r.subject,category:r.category,priority:r.priority,status:r.status,device:r.device||"",location:r.location||"",company:r.company||"",contact:r.contact||"",createdAt:Date.parse(r.created_at),updatedAt:Date.parse(r.updated_at),
  messages:(r.messages||[]).slice().sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id).map(m=>({by:m.kind,text:m.body,at:Date.parse(m.created_at),uid:m.author}))}}
 async function sbLoadTickets(){const {data,error}=await SB.from("tickets").select("*, messages(*)").order("updated_at",{ascending:false});
@@ -1294,14 +1321,14 @@ async function sbInit(){
  P.backend="sb";
  try{await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")}catch(e){P.backend=null;useDemo();return}
  SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,detectSessionInUrl:true}});
- const enter=async(session,fromLink)=>{P.uid=session.user.id;P.email=session.user.email||"";P.me={name:""};P.mode="live";await sbLoadProfile();P.scope=P.staff?"all":"mine";await sbLoadTickets();
+ const enter=async(session,fromLink)=>{P.uid=session.user.id;P.email=session.user.email||"";P.me={name:""};P.mode="live";await sbLoadProfile();if(P.pendingProfile&&P.pendingProfile.company&&!(P.profile&&P.profile.done)){const pp=P.pendingProfile;P.pendingProfile=null;await sbSaveProfile(pp.company,pp.contact);await sbLoadProfile()}P.scope=P.staff?"all":"mine";await sbLoadTickets();
   SB.channel("ha-tickets").on("postgres_changes",{event:"*",schema:"public",table:"tickets"},sbScheduleReload).on("postgres_changes",{event:"*",schema:"public",table:"messages"},sbScheduleReload).subscribe();
   if(fromLink){if(typeof setView==="function")setView("tickets");try{history.replaceState(null,"",location.pathname+"#ticketsystem")}catch(e){}}
   renderPortal()};
  const {data:{session}}=await SB.auth.getSession();
  const cameFromLink=/access_token|code=|type=magiclink/.test(location.href);
  if(session){await enter(session,cameFromLink)}else{P.mode="login";renderPortal()}
- SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"){enter(sess,true)}if(ev==="SIGNED_OUT"){P.mode="login";P.in=false;renderPortal()}});
+ SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="PASSWORD_RECOVERY"){setTimeout(sbNewPassword,300)}if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"){enter(sess,true)}if(ev==="SIGNED_OUT"){P.mode="login";P.in=false;renderPortal()}});
 }
 
 
