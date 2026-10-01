@@ -1,1 +1,1 @@
-# high-availability-ag.github.io
+# high-availabilityag.github.io
