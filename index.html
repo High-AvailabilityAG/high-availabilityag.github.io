@@ -482,6 +482,32 @@ button.stat:hover{border-color:var(--brand);transform:translateY(-2px)}
 .cust-sel{font:500 13.5px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 30px 7px 12px;max-width:220px;cursor:pointer}
 @media (max-width:900px){.side-lbl{display:none}}
 
+/* Ticket-Karten in der Liste */
+.tk-who .tk-co{flex:0 0 auto;max-width:62%}.tk-who .tk-ct{flex:1 1 0}
+.tk-list{grid-template-columns:minmax(0,1fr)}.tk{min-width:0;max-width:100%}.tk-who,.tk-top,.tk-tags{min-width:0;max-width:100%}
+.tk{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;border-radius:14px;transition:border-color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease),box-shadow .2s var(--ease)}
+.tk:hover{background:var(--surface-2)}
+.tk[aria-current="true"]{background:color-mix(in srgb,var(--brand-soft) 45%,var(--surface));box-shadow:inset 3px 0 0 var(--brand),0 6px 18px -12px rgba(0,0,0,.35)}
+.tk-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.tk-top .pill{flex:none;white-space:nowrap}
+.tk-no{white-space:nowrap;font:700 12px var(--f-mono);color:var(--brand-strong);background:var(--brand-soft);padding:3px 8px;border-radius:6px;letter-spacing:.02em}
+.tk-time{font-size:12px;color:var(--muted);margin-left:auto;padding-left:8px;white-space:nowrap;flex:none}
+.tk-top .pill{font-size:11.5px;padding:3px 9px}
+.tk-subj{font-weight:700;font-size:16px;line-height:1.3;overflow-wrap:anywhere;color:var(--ink)}
+.tk-who{display:flex;align-items:center;gap:8px;min-width:0;font-size:13.5px}
+.tk-who .avatar.mini{width:26px;height:26px;font-size:10.5px}
+.tk-co{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-ct{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tk-ct::before{content:"";display:inline-block;width:3px;height:3px;border-radius:50%;background:currentColor;vertical-align:middle;margin:0 8px 2px 0;opacity:.7}
+.tk-tags{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px dashed var(--line)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:3px 9px;border-radius:999px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag svg{width:12px;height:12px;flex:none;opacity:.8}
+.tag.pr{font-weight:600}
+.tag.pr i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.tag.p0{color:var(--muted)}
+.tag.p1{color:var(--st-open);background:var(--st-open-bg);border-color:transparent}
+.tag.p2{color:var(--st-prog);background:var(--st-prog-bg);border-color:transparent}
+.tag.p3{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent);border-color:transparent}
+
 /* Konto-Fenster oben rechts */
 .auth-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:999px;padding:3px;margin-bottom:16px}
 .auth-tabs button{position:relative;z-index:1;border:0;background:none;font:600 13.5px var(--f-body);color:var(--muted);padding:8px 0;border-radius:999px;cursor:pointer;transition:color .25s}
@@ -1137,6 +1163,12 @@ function vOverview(m){const a=list();const c=s=>a.filter(t=>t.status===s).length
 }
 function emptyState(){return `<div class="empty"><b>Noch keine Tickets</b><span>Hier erscheinen Ihre Support-Anfragen mit aktuellem Status und allen Antworten unseres Teams.</span><button class="btn btn-primary btn-sm" data-empty-new>Erstes Ticket erstellen</button></div>`}
 
+function tkCard(t){const pl=Math.max(0,PRIOS.indexOf(t.priority));const ic={dev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',loc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>'};
+ return `<button class="tk" data-k="${esc(key(t))}" aria-current="${key(t)===P.sel}">
+ <span class="tk-top"><span class="tk-no">${tno(t)}</span>${pill(t.status)}</span>
+ <span class="tk-subj">${esc(t.subject)}</span>
+ <span class="tk-who"><span class="avatar mini" aria-hidden="true">${esc(initials(nameOf(t)))}</span><span class="tk-co">${esc(nameOf(t))}</span>${t.contact?`<span class="tk-ct">${esc(t.contact)}</span>`:""}<span class="tk-time">${rel(t.updatedAt)}</span></span>
+ <span class="tk-tags"><span class="tag pr p${pl}"><i></i>${esc(t.priority||"Normal")}</span><span class="tag">${ic.cat}${esc(t.category)}</span>${t.device?`<span class="tag">${ic.dev}${esc(t.device)}</span>`:""}${t.location?`<span class="tag">${ic.loc}${esc(t.location)}</span>`:""}</span></button>`}
 function vTickets(m,archive,all){
  const fl=archive?[]:all?["Alle","Offen","In Bearbeitung","Wartet auf Kunde","Gelöst"]:["Alle","Offen","In Bearbeitung","Wartet auf Kunde"];
  if(!archive&&!fl.includes(P.filter))P.filter="Alle";
@@ -1147,7 +1179,7 @@ function vTickets(m,archive,all){
  if(P.q){const q=P.q.toLowerCase();a=a.filter(t=>(t.subject+" "+tno(t)+" "+t.id+" "+t.category+" "+(t.device||"")+" "+(t.location||"")+" "+nameOf(t)).toLowerCase().includes(q))}
  if(!P.sel||!P.tickets.has(P.sel)||!a.find(t=>key(t)===P.sel))P.sel=a[0]?key(a[0]):null;
  m.innerHTML=`${banner()}<div class="tk-tools"><input type="search" id="tkq" placeholder="Suchen: Betreff, Nummer, Kategorie" value="${esc(P.q)}" aria-label="Tickets durchsuchen">${all?`<select id="tkCust" class="cust-sel" aria-label="Kunde filtern"><option value="">Alle Kunden (${custs.length})</option>${custs.map(c=>`<option ${c===P.cust?"selected":""}>${esc(c)}</option>`).join("")}</select>`:""}${archive?`<span class="hint">${base} geschlossene${base===1?"s":""} Ticket${base===1?"":"s"} · erledigte Anfragen landen automatisch hier</span>`:`<div class="filters" role="group" aria-label="Status filtern">${fl.map(f=>`<button data-f="${f}" aria-pressed="${P.filter===f}">${f}</button>`).join("")}</div>`}<button class="btn btn-primary btn-sm" id="tkNew" style="margin-left:auto">Neues Ticket</button></div>
- <div class="tk-layout"><div class="tk-list" id="tkList">${a.length?a.map(t=>`<button class="tk" data-k="${esc(key(t))}" aria-current="${key(t)===P.sel}"><span class="id">${tno(t)}</span>${pill(t.status)}<span class="subj">${esc(t.subject)}</span><span class="who-line"><span class="avatar mini" aria-hidden="true">${esc(initials(nameOf(t)))}</span><b>${esc(nameOf(t))}</b>${t.contact?`<span>· ${esc(t.contact)}</span>`:""}</span><span class="sub">${prio(t.priority)}<span>${esc(t.category)}</span>${t.device||t.location?`<span>· ${esc([t.device,t.location].filter(Boolean).join(", "))}</span>`:""}<span>· ${rel(t.updatedAt)}</span></span></button>`).join(""):(base?`<div class="empty"><b>Keine Treffer</b><span>Passen Sie Filter oder Suche an.</span></div>`:archive?`<div class="empty">${I.archive}<b>Noch keine geschlossenen Tickets</b><span>Sobald eine Anfrage gelöst ist, wird sie hier abgelegt. Aktive Tickets finden Sie unter «Support-Tickets».</span></div>`:P.tickets.size?`<div class="empty"><b>Keine offenen Tickets</b><span>Alles erledigt. Geschlossene Tickets finden Sie im Reiter «Geschlossen».</span><button class="btn btn-primary btn-sm" data-empty-new>Neues Ticket erstellen</button></div>`:emptyState())}</div>
+ <div class="tk-layout"><div class="tk-list" id="tkList">${a.length?a.map(tkCard).join(""):(base?`<div class="empty"><b>Keine Treffer</b><span>Passen Sie Filter oder Suche an.</span></div>`:archive?`<div class="empty">${I.archive}<b>Noch keine geschlossenen Tickets</b><span>Sobald eine Anfrage gelöst ist, wird sie hier abgelegt. Aktive Tickets finden Sie unter «Support-Tickets».</span></div>`:P.tickets.size?`<div class="empty"><b>Keine offenen Tickets</b><span>Alles erledigt. Geschlossene Tickets finden Sie im Reiter «Geschlossen».</span><button class="btn btn-primary btn-sm" data-empty-new>Neues Ticket erstellen</button></div>`:emptyState())}</div>
  <div id="tkDetail">${P.sel?"":`<div class="detail" style="display:grid;place-items:center;color:var(--muted);padding:30px;text-align:center">${a.length?"Wählen Sie links ein Ticket aus.":"Kein Ticket ausgewählt."}</div>`}</div></div>`;
  const cs=$("#tkCust");cs&&cs.addEventListener("change",()=>{P.cust=cs.value;P.sel=null;vTickets(m,archive,all)});
  const q=$("#tkq");q.addEventListener("input",()=>{P.q=q.value;const pos=q.selectionStart;vTickets(m,archive,all);const n=$("#tkq");n.focus();n.setSelectionRange(pos,pos)});
