@@ -503,10 +503,11 @@ button.stat:hover{border-color:var(--brand);transform:translateY(-2px)}
 .tag svg{width:12px;height:12px;flex:none;opacity:.8}
 .tag.pr{font-weight:600}
 .tag.pr i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-.tag.p0{color:var(--muted)}
-.tag.p1{color:var(--st-open);background:var(--st-open-bg);border-color:transparent}
-.tag.p2{color:var(--st-prog);background:var(--st-prog-bg);border-color:transparent}
-.tag.p3{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent);border-color:transparent}
+.tag.pr{background:var(--surface-2);border-color:var(--line)}
+.tag.p0{color:var(--pr-low)}.tag.p1{color:var(--pr-norm)}.tag.p2{color:var(--pr-high)}.tag.p3{color:var(--pr-crit)}
+:root{--pr-low:#0EA5E9;--pr-norm:#2563EB;--pr-high:#EA580C;--pr-crit:#DC2626}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pr-low:#7DD3FC;--pr-norm:#60A5FA;--pr-high:#FB923C;--pr-crit:#F87171}}
+:root[data-theme="dark"]{--pr-low:#7DD3FC;--pr-norm:#60A5FA;--pr-high:#FB923C;--pr-crit:#F87171}
 
 /* Konto-Fenster oben rechts */
 .auth-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:999px;padding:3px;margin-bottom:16px}
