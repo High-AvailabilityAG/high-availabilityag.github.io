@@ -1053,6 +1053,9 @@ function applyView(v){const t=v==="tickets";$("#start").hidden=t;$("#siteFooter"
  try{history.replaceState(null,"",t?"#ticketsystem":location.pathname+location.search)}catch(e){}
  window.scrollTo(0,0);if(t)renderPortal()}
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{if(!$("#ticketsystem").hidden){applyView("site");moveThumb("site")}}));
+$(".brand").addEventListener("click",e=>{e.preventDefault();closeAcct&&closeAcct();$("#nav").classList.remove("open");
+ if(!$("#ticketsystem").hidden){setView("site");setTimeout(()=>window.scrollTo(0,0),0)}else{window.scrollTo({top:0,behavior:RM?"auto":"smooth"})}
+ try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}});
 (function(){const vs=$(".vswitch");const th=document.createElement("span");th.className="thumb";th.setAttribute("aria-hidden","true");vs.prepend(th);vs.classList.add("js");
  window.moveThumb=v=>{const b=vs.querySelector(`[data-view="${v}"]`);if(!b)return;th.style.width=b.offsetWidth+"px";th.style.transform=`translateX(${b.offsetLeft-3}px)`;
   vs.querySelectorAll("button").forEach(x=>x.style.color=x===b?"#0B1610":"")};
