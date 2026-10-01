@@ -1347,7 +1347,7 @@ async function sbInit(){
   renderPortal()};
  const {data:{session}}=await SB.auth.getSession();
  const cameFromLink=/access_token|code=|type=magiclink/.test(location.href);
- if(session){await enter(session,cameFromLink)}else{P.mode="login";renderPortal()}
+ if(session&&cameFromLink){P.smoking=true;smokeTransition(enter(session,false))}else if(session){await enter(session,false)}else{P.mode="login";renderPortal()}
  SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="PASSWORD_RECOVERY"){setTimeout(sbNewPassword,300)}if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"&&!P.entering&&!P.smoking){setTimeout(()=>enter(sess,true),0)}if(ev==="SIGNED_OUT"){P.chan&&(SB.removeChannel?SB.removeChannel(P.chan):0);P.chan=null;P.mode="login";P.in=false;renderPortal()}});
 }
 
@@ -1392,7 +1392,6 @@ async function doLogout(){P.in=false;P.sel=null;P.tab="overview";
 function smokeTransition(ready){
  const done=()=>{P.smoking=false};
  const go=()=>{P.in=true;P.tab=P.staff?"all":"overview";P.sel=null;applyView("tickets");moveThumb("tickets");renderPortal()};
- if(RM){Promise.resolve(ready).catch(()=>{}).then(()=>{go();done()});return}
  const ov=document.createElement("div");ov.className="smoke-ov";ov.setAttribute("aria-hidden","true");
  const cv=document.createElement("canvas");const msg=document.createElement("div");msg.className="smoke-msg";
  ov.append(cv,msg);document.body.append(ov);
@@ -1403,8 +1402,8 @@ function smokeTransition(ready){
  const g=sx.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,"rgba(236,241,237,1)");g.addColorStop(.45,"rgba(222,230,224,.75)");g.addColorStop(1,"rgba(210,220,213,0)");sx.fillStyle=g;sx.fillRect(0,0,128,128);
  const sp2=document.createElement("canvas");sp2.width=sp2.height=128;const sx2=sp2.getContext("2d");
  const g2=sx2.createRadialGradient(64,64,0,64,64,64);g2.addColorStop(0,"rgba(190,204,195,.9)");g2.addColorStop(.5,"rgba(176,192,182,.5)");g2.addColorStop(1,"rgba(170,186,176,0)");sx2.fillStyle=g2;sx2.fillRect(0,0,128,128);
- const N=Math.round(90+W*H/9000);const R=()=>Math.random();
- const parts=Array.from({length:N},()=>{const r0=Math.max(W,H)*(.07+R()*.09);return{x:R()*W,r0,born:R()*1.25,v:H*(.55+R()*.6),a:.35+R()*.45,ph:R()*6.28,dr:(R()-.5)*W*.08,dark:R()<.28,rot:R()*6.28}});
+ const N=Math.round(140+W*H/6000);const R=()=>Math.random();
+ const parts=Array.from({length:N},()=>{const r0=Math.max(W,H)*(.07+R()*.09);return{x:R()*W,r0,born:R()*1.25,v:H*(.55+R()*.6),a:.45+R()*.45,ph:R()*6.28,dr:(R()-.5)*W*.08,dark:R()<.28,rot:R()*6.28}});
  const t0=performance.now();let readyAt=null,fading=false,ok=false;
  Promise.resolve(ready).then(()=>{ok=true},()=>{ok=true});
  const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3);
