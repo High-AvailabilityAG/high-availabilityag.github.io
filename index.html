@@ -469,6 +469,19 @@ button.stat:hover{border-color:var(--brand);transform:translateY(-2px)}
 .sendas .avatar.mini{width:34px;height:34px;font-size:12px}
 .sendas b{display:block;font-size:15px}
 .login form .field{text-align:left}
+.smoke-ov{position:fixed;inset:0;z-index:300;pointer-events:all;transition:opacity 1.2s var(--ease)}
+.smoke-ov canvas{width:100%;height:100%;display:block;filter:blur(6px)}
+.smoke-ov.out{opacity:0;pointer-events:none}
+.smoke-msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-40%);font:800 clamp(26px,4.4vw,46px)/1.15 var(--f-display);color:#1C3320;text-align:center;opacity:0;transition:opacity .5s var(--ease),transform .7s var(--ease);padding:0 20px;width:100%}
+.smoke-msg.on{opacity:1;transform:translate(-50%,-50%)}
+
+.side-lbl{display:block;font:700 10.5px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
+.side-lbl:first-child{padding-top:2px}
+.p-side .staff-tab{font-weight:700}
+.p-side .staff-tab .count{background:var(--brand);color:var(--on-brand)}
+.cust-sel{font:500 13.5px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 30px 7px 12px;max-width:220px;cursor:pointer}
+@media (max-width:900px){.side-lbl{display:none}}
+
 /* Konto-Fenster oben rechts */
 .auth-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:999px;padding:3px;margin-bottom:16px}
 .auth-tabs button{position:relative;z-index:1;border:0;background:none;font:600 13.5px var(--f-body);color:var(--muted);padding:8px 0;border-radius:999px;cursor:pointer;transition:color .25s}
@@ -909,6 +922,7 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIwAAAB4CAYAAAAgwxoxAA
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const I={
+ inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h5l1.5 2.5h5L16 13h5"/><path d="M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"/></svg>',
  userIc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.8 20c1.2-3.6 4-5.4 7.2-5.4s6 1.8 7.2 5.4"/></svg>',
  pc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
  net:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.2" r="1.3" fill="currentColor"/></svg>',
@@ -1076,7 +1090,7 @@ const portal=$("#portal");
 
 function pill(s){return `<span class="pill ${STATUS[s]||"s-open"}"><span class="dot"></span>${esc(s)}</span>`}
 function prio(p){const n=PRIOS.indexOf(p)+1;return `<span class="prio ${n>=3?"hi":""}"><i>${[1,2,3,4].map(k=>`<b class="${k<=n?"on":""}"></b>`).join("")}</i>${esc(p)}</span>`}
-function list(){let a=[...P.tickets.values()];if(P.staff&&P.scope==="mine")a=a.filter(t=>t.owner===P.uid||P.mode==="demo");return a.sort((x,y)=>y.updatedAt-x.updatedAt)}
+function list(sc){sc=sc||(P.tab==="all"?"all":"mine");let a=[...P.tickets.values()];if(P.staff&&sc==="mine")a=a.filter(t=>t.owner===P.uid||P.mode==="demo");return a.sort((x,y)=>y.updatedAt-x.updatedAt)}
 function tno(t){return t.no?`Ticket #${t.no}`:t.id}
 function nameOf(t){return (t.company||"").trim()||"Unbekannt"}
 function custName(){return (P.profile?.company||"").trim()||"Unbekannt"}
@@ -1092,19 +1106,21 @@ function renderPortal(){
   portal.querySelectorAll("[data-demo]").forEach(b=>b.addEventListener("click",startDemo));
   const ep=$("#editProf");ep&&ep.addEventListener("click",()=>{P.profile={...P.profile,done:false};renderPortal()});
   bindProfileForm(()=>{P.in=true;P.anim=true;renderPortal()});return}
- const all=list();const open=all.filter(t=>t.status!=="Gelöst").length;
- const nav=[["overview","Übersicht",I.home,""],["tickets","Support-Tickets",I.ticket,open],["closed","Geschlossen",I.archive,all.length-open],["docs","Dokumente",I.doc,""],["bills","Rechnungen",I.bill,""],["remote","Fernwartung",I.remote,""]];
+ const all=list("mine");const open=all.filter(t=>t.status!=="Gelöst").length;
+ if(P.staff){P.scope=P.tab==="all"?"all":"mine"}else if(P.tab==="all")P.tab="overview";
+ const allOpen=P.staff?list("all").filter(t=>t.status!=="Gelöst").length:0;
+ const nav=[...(P.staff?[["all","Alle Tickets",I.inbox,allOpen,"staff"]]:[]),["overview","Übersicht",I.home,""],["tickets","Support-Tickets",I.ticket,open],["closed","Geschlossen",I.archive,all.length-open],["docs","Dokumente",I.doc,""],["bills","Rechnungen",I.bill,""],["remote","Fernwartung",I.remote,""]];
  portal.innerHTML=`<div class="p-top"><div class="who">${(()=>{const sup=P.staff&&(P.mode==="demo"||P.scope==="all");const nm=sup?"High Availability AG":custName();const sub=sup?"Support-Team":[custContact(),P.mode==="demo"?"Beispiel":""].filter(Boolean).join(" · ");return `<div class="avatar" aria-hidden="true">${esc(initials(nm))}</div><div><b>${esc(nm)}</b><span>${esc(sub)}</span></div>`})()}${P.mode==="live"&&!(P.staff&&P.scope==="all")?`<button class="readmore" id="profBtn" style="font-size:13px;margin-left:6px">Ändern</button>`:""}</div>
-  <div class="right">${P.mode==="demo"?`<div class="seg" role="group" aria-label="Rolle testen"><button data-role="kunde" aria-pressed="${!P.staff}">Als Kunde</button><button data-role="support" aria-pressed="${P.staff}">Als Support</button></div>`:""}${P.staff&&P.mode==="live"?`<div class="seg" role="group" aria-label="Ansicht"><button data-scope="mine" aria-pressed="${P.scope==="mine"}">Meine Tickets</button><button data-scope="all" aria-pressed="${P.scope==="all"}">Alle Kunden</button></div>`:""}
+  <div class="right">${P.mode==="demo"?`<div class="seg" role="group" aria-label="Rolle testen"><button data-role="kunde" aria-pressed="${!P.staff}">Als Kunde</button><button data-role="support" aria-pressed="${P.staff}">Als Support</button></div>`:""}
   <span class="mode ${P.mode==="live"?"live":""}">${P.mode==="live"?"Live":"Demo-Modus"}</span><button class="btn btn-ghost btn-sm" id="logout">Abmelden</button></div></div>
-  <div class="p-body"><nav class="p-side" aria-label="Kundenbereich">${nav.map(([k,l,ic,c])=>`<button data-tab="${k}" aria-current="${P.tab===k}">${ic}${l}${c!==""?`<span class="count">${c}</span>`:""}</button>`).join("")}</nav><div class="p-main" id="pmain"></div></div>`;
+  <div class="p-body"><nav class="p-side" aria-label="Kundenbereich">${P.staff?`<span class="side-lbl">Support</span>`:""}${nav.map(([k,l,ic,c,x],i)=>`${P.staff&&i===1?`<span class="side-lbl">Mein Konto</span>`:""}<button data-tab="${k}" aria-current="${P.tab===k}" class="${x?"staff-tab":""}">${ic}${l}${c!==""?`<span class="count">${c}</span>`:""}</button>`).join("")}</nav><div class="p-main" id="pmain"></div></div>`;
  portal.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{if(P.tab!==b.dataset.tab){P.tab=b.dataset.tab;P.anim=true}renderPortal()}));
- portal.querySelectorAll("[data-role]").forEach(b=>b.addEventListener("click",()=>{P.staff=b.dataset.role==="support";P.scope="all";renderPortal()}));
+ portal.querySelectorAll("[data-role]").forEach(b=>b.addEventListener("click",()=>{P.staff=b.dataset.role==="support";P.tab=P.staff?"all":"overview";P.sel=null;P.anim=true;renderPortal()}));
  portal.querySelectorAll("[data-scope]").forEach(b=>b.addEventListener("click",()=>{P.scope=b.dataset.scope;P.sel=null;renderPortal()}));
  $("#logout").addEventListener("click",doLogout);
  const pb=$("#profBtn");pb&&pb.addEventListener("click",()=>drawer(`<header><div><p class="eyebrow">Kundenkonto</p><h3 style="margin-top:8px">Firmenangaben</h3></div><button class="x" data-close aria-label="Schliessen">×</button></header><p class="hint">Die Firma erscheint als Name bei allen neuen Tickets. Ohne Firma erscheinen Ihre Tickets als «Unbekannt».</p>${profileForm(true)}`,d=>bindProfileForm(()=>{closeDrawer();renderPortal();toast("Firmenangaben gespeichert")},d)));
  const m=$("#pmain");if(P.anim&&!RM){m.classList.add("anim");P.anim=false;setTimeout(()=>m.classList.remove("anim"),700)}
- ({overview:vOverview,tickets:m=>vTickets(m,false),closed:m=>vTickets(m,true),docs:vDocs,bills:vBills,remote:vRemote})[P.tab](m);
+ ({all:m=>vTickets(m,false,true),overview:vOverview,tickets:m=>vTickets(m,false),closed:m=>vTickets(m,true),docs:vDocs,bills:vBills,remote:vRemote})[P.tab](m);
 }
 function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join("")||"?"}
 function banner(){return P.mode==="demo"?`<div class="banner">Demo-Modus: Sie sehen Beispieldaten. Neue Tickets und Antworten bleiben nur bis zum Neuladen der Seite erhalten.</div>`:P.err?`<div class="banner">${esc(P.err)}</div>`:""}
@@ -1121,18 +1137,21 @@ function vOverview(m){const a=list();const c=s=>a.filter(t=>t.status===s).length
 }
 function emptyState(){return `<div class="empty"><b>Noch keine Tickets</b><span>Hier erscheinen Ihre Support-Anfragen mit aktuellem Status und allen Antworten unseres Teams.</span><button class="btn btn-primary btn-sm" data-empty-new>Erstes Ticket erstellen</button></div>`}
 
-function vTickets(m,archive){
- const fl=archive?[]:["Alle","Offen","In Bearbeitung","Wartet auf Kunde"];
+function vTickets(m,archive,all){
+ const fl=archive?[]:all?["Alle","Offen","In Bearbeitung","Wartet auf Kunde","Gelöst"]:["Alle","Offen","In Bearbeitung","Wartet auf Kunde"];
  if(!archive&&!fl.includes(P.filter))P.filter="Alle";
- let a=list().filter(t=>archive?t.status==="Gelöst":t.status!=="Gelöst");const base=a.length;
+ let a=all?list("all"):list().filter(t=>archive?t.status==="Gelöst":t.status!=="Gelöst");
+ const custs=all?[...new Set(a.map(nameOf))].sort((x,y)=>x.localeCompare(y,"de")):[];if(all&&P.cust&&!custs.includes(P.cust))P.cust="";
+ if(all&&P.cust)a=a.filter(t=>nameOf(t)===P.cust);const base=a.length;
  if(!archive&&P.filter!=="Alle")a=a.filter(t=>t.status===P.filter);
  if(P.q){const q=P.q.toLowerCase();a=a.filter(t=>(t.subject+" "+tno(t)+" "+t.id+" "+t.category+" "+(t.device||"")+" "+(t.location||"")+" "+nameOf(t)).toLowerCase().includes(q))}
  if(!P.sel||!P.tickets.has(P.sel)||!a.find(t=>key(t)===P.sel))P.sel=a[0]?key(a[0]):null;
- m.innerHTML=`${banner()}<div class="tk-tools"><input type="search" id="tkq" placeholder="Suchen: Betreff, Nummer, Kategorie" value="${esc(P.q)}" aria-label="Tickets durchsuchen">${archive?`<span class="hint">${base} geschlossene${base===1?"s":""} Ticket${base===1?"":"s"} · erledigte Anfragen landen automatisch hier</span>`:`<div class="filters" role="group" aria-label="Status filtern">${fl.map(f=>`<button data-f="${f}" aria-pressed="${P.filter===f}">${f}</button>`).join("")}</div>`}<button class="btn btn-primary btn-sm" id="tkNew" style="margin-left:auto">Neues Ticket</button></div>
+ m.innerHTML=`${banner()}<div class="tk-tools"><input type="search" id="tkq" placeholder="Suchen: Betreff, Nummer, Kategorie" value="${esc(P.q)}" aria-label="Tickets durchsuchen">${all?`<select id="tkCust" class="cust-sel" aria-label="Kunde filtern"><option value="">Alle Kunden (${custs.length})</option>${custs.map(c=>`<option ${c===P.cust?"selected":""}>${esc(c)}</option>`).join("")}</select>`:""}${archive?`<span class="hint">${base} geschlossene${base===1?"s":""} Ticket${base===1?"":"s"} · erledigte Anfragen landen automatisch hier</span>`:`<div class="filters" role="group" aria-label="Status filtern">${fl.map(f=>`<button data-f="${f}" aria-pressed="${P.filter===f}">${f}</button>`).join("")}</div>`}<button class="btn btn-primary btn-sm" id="tkNew" style="margin-left:auto">Neues Ticket</button></div>
  <div class="tk-layout"><div class="tk-list" id="tkList">${a.length?a.map(t=>`<button class="tk" data-k="${esc(key(t))}" aria-current="${key(t)===P.sel}"><span class="id">${tno(t)}</span>${pill(t.status)}<span class="subj">${esc(t.subject)}</span><span class="who-line"><span class="avatar mini" aria-hidden="true">${esc(initials(nameOf(t)))}</span><b>${esc(nameOf(t))}</b>${t.contact?`<span>· ${esc(t.contact)}</span>`:""}</span><span class="sub">${prio(t.priority)}<span>${esc(t.category)}</span>${t.device||t.location?`<span>· ${esc([t.device,t.location].filter(Boolean).join(", "))}</span>`:""}<span>· ${rel(t.updatedAt)}</span></span></button>`).join(""):(base?`<div class="empty"><b>Keine Treffer</b><span>Passen Sie Filter oder Suche an.</span></div>`:archive?`<div class="empty">${I.archive}<b>Noch keine geschlossenen Tickets</b><span>Sobald eine Anfrage gelöst ist, wird sie hier abgelegt. Aktive Tickets finden Sie unter «Support-Tickets».</span></div>`:P.tickets.size?`<div class="empty"><b>Keine offenen Tickets</b><span>Alles erledigt. Geschlossene Tickets finden Sie im Reiter «Geschlossen».</span><button class="btn btn-primary btn-sm" data-empty-new>Neues Ticket erstellen</button></div>`:emptyState())}</div>
  <div id="tkDetail">${P.sel?"":`<div class="detail" style="display:grid;place-items:center;color:var(--muted);padding:30px;text-align:center">${a.length?"Wählen Sie links ein Ticket aus.":"Kein Ticket ausgewählt."}</div>`}</div></div>`;
- const q=$("#tkq");q.addEventListener("input",()=>{P.q=q.value;const pos=q.selectionStart;vTickets(m,archive);const n=$("#tkq");n.focus();n.setSelectionRange(pos,pos)});
- m.querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click",()=>{P.filter=b.dataset.f;vTickets(m,archive)}));
+ const cs=$("#tkCust");cs&&cs.addEventListener("change",()=>{P.cust=cs.value;P.sel=null;vTickets(m,archive,all)});
+ const q=$("#tkq");q.addEventListener("input",()=>{P.q=q.value;const pos=q.selectionStart;vTickets(m,archive,all);const n=$("#tkq");n.focus();n.setSelectionRange(pos,pos)});
+ m.querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click",()=>{P.filter=b.dataset.f;vTickets(m,archive,all)}));
  m.querySelectorAll("[data-k]").forEach(b=>b.addEventListener("click",()=>{if(P.sel===b.dataset.k)return;P.sel=b.dataset.k;m.querySelectorAll("[data-k]").forEach(x=>x.setAttribute("aria-current",String(x===b)));renderDetail($("#tkDetail"),P.tickets.get(P.sel))}));
  $("#tkNew").addEventListener("click",openNew);
  const e=m.querySelector("[data-empty-new]");e&&e.addEventListener("click",openNew);
@@ -1285,7 +1304,7 @@ function bindSbLogin(){const pop=$("#acctPop");const f=$("#sbLogin");if(!f)retur
   btn.disabled=false;btn.textContent=lbl;
   if(res.error){P.pendingProfile=null;return fail(sbErr(res.error))}
   if(reg&&!res.data?.session){ok.textContent="Konto erstellt. Bitte bestätigen Sie noch Ihre E-Mail-Adresse.";ok.hidden=false;return}
-  sbTab="login";closeAcct()})}
+  sbTab="login";closeAcct();P.smoking=true;smokeTransition(window.sbEnter(res.data.session,false))})}
 function sbNewPassword(){drawer(`<header><div><p class="eyebrow">Kundenkonto</p><h3 style="margin-top:8px">Neues Passwort</h3></div><button class="x" data-close aria-label="Schliessen">×</button></header>
  <form id="npForm" novalidate style="display:grid;gap:12px"><div class="field"><label for="np-pw">Neues Passwort</label><input id="np-pw" type="password" autocomplete="new-password" minlength="6" placeholder="Mindestens 6 Zeichen"></div><p class="err" id="np-err" hidden></p><button class="btn btn-primary" type="submit">Passwort speichern</button></form>`,d=>{
  const f=d.querySelector("#npForm");f.addEventListener("submit",async e=>{e.preventDefault();const pw=d.querySelector("#np-pw").value;const er=d.querySelector("#np-err");
@@ -1321,14 +1340,15 @@ async function sbInit(){
  P.backend="sb";
  try{await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")}catch(e){P.backend=null;useDemo();return}
  SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,detectSessionInUrl:true}});
- const enter=async(session,fromLink)=>{P.uid=session.user.id;P.email=session.user.email||"";P.me={name:""};P.mode="live";await sbLoadProfile();if(P.pendingProfile&&P.pendingProfile.company&&!(P.profile&&P.profile.done)){const pp=P.pendingProfile;P.pendingProfile=null;await sbSaveProfile(pp.company,pp.contact);await sbLoadProfile()}P.scope=P.staff?"all":"mine";await sbLoadTickets();
-  SB.channel("ha-tickets").on("postgres_changes",{event:"*",schema:"public",table:"tickets"},sbScheduleReload).on("postgres_changes",{event:"*",schema:"public",table:"messages"},sbScheduleReload).subscribe();
+ const enter=window.sbEnter=(session,fromLink)=>{if(P.entering)return P.entering;if(P.mode==="live"&&P.uid===session.user.id)return Promise.resolve();P.entering=(async()=>{try{await enterInner(session,fromLink)}finally{P.entering=null}})();return P.entering};
+ const enterInner=async(session,fromLink)=>{P.uid=session.user.id;P.email=session.user.email||"";P.me={name:""};P.mode="live";await sbLoadProfile();if(P.pendingProfile&&P.pendingProfile.company&&!(P.profile&&P.profile.done)){const pp=P.pendingProfile;P.pendingProfile=null;await sbSaveProfile(pp.company,pp.contact);await sbLoadProfile()}P.scope=P.staff?"all":"mine";P.tab=P.staff?"all":"overview";await sbLoadTickets();
+  P.chan||(P.chan=SB.channel("ha-tickets").on("postgres_changes",{event:"*",schema:"public",table:"tickets"},sbScheduleReload).on("postgres_changes",{event:"*",schema:"public",table:"messages"},sbScheduleReload).subscribe());
   if(fromLink){if(typeof setView==="function")setView("tickets");try{history.replaceState(null,"",location.pathname+"#ticketsystem")}catch(e){}}
   renderPortal()};
  const {data:{session}}=await SB.auth.getSession();
  const cameFromLink=/access_token|code=|type=magiclink/.test(location.href);
  if(session){await enter(session,cameFromLink)}else{P.mode="login";renderPortal()}
- SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="PASSWORD_RECOVERY"){setTimeout(sbNewPassword,300)}if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"){enter(sess,true)}if(ev==="SIGNED_OUT"){P.mode="login";P.in=false;renderPortal()}});
+ SB.auth.onAuthStateChange((ev,sess)=>{if(ev==="PASSWORD_RECOVERY"){setTimeout(sbNewPassword,300)}if(ev==="SIGNED_IN"&&sess&&P.mode!=="live"&&!P.entering&&!P.smoking){setTimeout(()=>enter(sess,true),0)}if(ev==="SIGNED_OUT"){P.chan&&(SB.removeChannel?SB.removeChannel(P.chan):0);P.chan=null;P.mode="login";P.in=false;renderPortal()}});
 }
 
 
@@ -1367,6 +1387,41 @@ async function doLogout(){P.in=false;P.sel=null;P.tab="overview";
  if(P.backend==="sb"){try{await SB.auth.signOut()}catch(e){}P.mode="login";P.tickets=new Map();P.profile=null;P.staff=false;P.email=""}
  else if(P.mode==="demo"&&!window.claude?.use){P.mode="nologin"}
  renderPortal();toast(P.backend==="sb"?"Sie wurden abgemeldet":"Demo beendet")}
+
+/* ---------- Rauch-Übergang nach der Anmeldung ---------- */
+function smokeTransition(ready){
+ const done=()=>{P.smoking=false};
+ const go=()=>{P.in=true;P.tab=P.staff?"all":"overview";P.sel=null;applyView("tickets");moveThumb("tickets");renderPortal()};
+ if(RM){Promise.resolve(ready).catch(()=>{}).then(()=>{go();done()});return}
+ const ov=document.createElement("div");ov.className="smoke-ov";ov.setAttribute("aria-hidden","true");
+ const cv=document.createElement("canvas");const msg=document.createElement("div");msg.className="smoke-msg";
+ ov.append(cv,msg);document.body.append(ov);
+ const SC=.5;let W,H;const size=()=>{W=Math.ceil(innerWidth*SC);H=Math.ceil(innerHeight*SC);cv.width=W;cv.height=H};size();
+ const x=cv.getContext("2d");
+ /* weicher Rauch-Puff als Vorlage */
+ const sp=document.createElement("canvas");sp.width=sp.height=128;const sx=sp.getContext("2d");
+ const g=sx.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,"rgba(236,241,237,1)");g.addColorStop(.45,"rgba(222,230,224,.75)");g.addColorStop(1,"rgba(210,220,213,0)");sx.fillStyle=g;sx.fillRect(0,0,128,128);
+ const sp2=document.createElement("canvas");sp2.width=sp2.height=128;const sx2=sp2.getContext("2d");
+ const g2=sx2.createRadialGradient(64,64,0,64,64,64);g2.addColorStop(0,"rgba(190,204,195,.9)");g2.addColorStop(.5,"rgba(176,192,182,.5)");g2.addColorStop(1,"rgba(170,186,176,0)");sx2.fillStyle=g2;sx2.fillRect(0,0,128,128);
+ const N=Math.round(90+W*H/9000);const R=()=>Math.random();
+ const parts=Array.from({length:N},()=>{const r0=Math.max(W,H)*(.07+R()*.09);return{x:R()*W,r0,born:R()*1.25,v:H*(.55+R()*.6),a:.35+R()*.45,ph:R()*6.28,dr:(R()-.5)*W*.08,dark:R()<.28,rot:R()*6.28}});
+ const t0=performance.now();let readyAt=null,fading=false,ok=false;
+ Promise.resolve(ready).then(()=>{ok=true},()=>{ok=true});
+ const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3);
+ function frame(now){const t=(now-t0)/1000;x.clearRect(0,0,W,H);
+  /* Grunddecke, die von unten nach oben steigt */
+  const cover=ease((t-.25)/1.35);const top=H-(H*1.45)*cover;
+  if(cover>0){const gr=x.createLinearGradient(0,top,0,top+H*.45);gr.addColorStop(0,"rgba(226,233,228,0)");gr.addColorStop(1,"rgba(226,233,228,.97)");x.fillStyle=gr;x.fillRect(0,top,W,H*.45);x.fillStyle="rgba(226,233,228,.97)";x.fillRect(0,top+H*.45-1,W,H)}
+  /* Rauchschwaden */
+  for(const p of parts){const lt=t-p.born;if(lt<0)continue;const y=H+p.r0-p.v*lt;const r=p.r0*(1+lt*.9);const px=p.x+Math.sin(lt*1.3+p.ph)*W*.025+p.dr*lt;
+   const a=p.a*Math.min(1,lt*2.2)*(y<-r?0:1);if(a<=0)continue;x.globalAlpha=Math.min(1,a);x.drawImage(p.dark?sp2:sp,px-r,y-r,r*2,r*2)}
+  x.globalAlpha=1;
+  if(t>1.05&&!msg.classList.contains("on")&&ok){msg.textContent=`Willkommen${P.profile&&P.profile.company?", "+P.profile.company:""}`;msg.classList.add("on")}
+  if(!fading&&t>=1.75&&ok){fading=true;go();ov.classList.add("out");setTimeout(()=>{ov.remove();done()},1250)}
+  if(document.body.contains(ov))requestAnimationFrame(frame)}
+ requestAnimationFrame(frame);addEventListener("resize",size,{once:true});
+ /* Sicherheitsnetz, falls etwas hängen bleibt */
+ setTimeout(()=>{if(document.body.contains(ov)&&!fading){fading=true;go();ov.classList.add("out");setTimeout(()=>{ov.remove();done()},1250)}},9000)}
 /* ---------- Live-Anbindung ---------- */
 function useDemo(){P.mode="demo";P.profile={company:"Sota GmbH",contact:"Eva Derungs",done:true};P.tickets=new Map(DEMO.map(t=>[key(t),t]));renderPortal()}
 function docToTicket(owner,d){const v=d.data();if(!v)return null;return{...v,owner,id:d.id,messages:Array.isArray(v.messages)?v.messages:[]}}
@@ -1385,7 +1440,7 @@ async function resolveNames(){if(!P.staff||!P.user)return;const ids=[...new Set(
   P.staff=await user.canEdit().catch(()=>false);
   try{const pd=await db.doc(`tickets/${uid}`).get();const v=pd.exists?pd.data():null;P.profile=v&&v.done?{company:v.company||"",contact:v.contact||"",done:true}:{company:"",contact:"",done:false}}catch(e){P.profile={company:"",contact:"",done:false}}
   watchOwner(uid);
-  if(P.staff){P.scope="all";db.collection("tickets").onSnapshot(s=>{s.docs.forEach(d=>watchOwner(d.id))},()=>{})}
+  if(P.staff){P.scope="all";P.tab="all";db.collection("tickets").onSnapshot(s=>{s.docs.forEach(d=>watchOwner(d.id))},()=>{})}
   renderPortal();
  }catch(e){clearTimeout(timer);if(P.mode==="loading")useDemo()}
 })();
